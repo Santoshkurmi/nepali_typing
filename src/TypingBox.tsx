@@ -258,12 +258,12 @@ export default function TypingBox() {
     var currentText = e.target.value
     const length = currentText.length;
     const currentWord = words[currentIndexOfWord.current]
-    if(currentText.length>  previousText.current.length &&  currentText.trim().length > 0  && currentText[length-1]!=" "){
+    if( currentText.trim().length > 0  && currentText[length-1]!=" "){
       var mapped = keyToNep[currentText[length-1]]
       if(mapped == undefined) mapped = ""
       currentText = currentText.substring(0,length-1)+mapped
     }
-    previousText.current = currentText
+    // previousText.current = currentText
 
 
     // alert(currentText[currentText.length-1])
@@ -357,7 +357,7 @@ export default function TypingBox() {
 
         </div>
 
-        <div className="dark:bg-gray-600 flex flex-wrap p-4 rounded">
+        <div className="dark:bg-gray-800 flex flex-wrap p-4 rounded">
           {
             words.map((word, index) => {
               return <span key={index} className={'text-3xl mx-1 p-1 rounded-md font-medium ' +
@@ -373,7 +373,7 @@ export default function TypingBox() {
         </div>
 
         <textarea
-          className="w-full text-3xl p-4 border-2 dark:bg-gray-700 border-gray-300 rounded focus:outline-none focus:border-blue-500 resize-none h-32"
+          className="w-full text-3xl p-4 border-2 dark:bg-gray-800 border-gray-300 rounded focus:outline-none focus:border-blue-500 resize-none h-32"
           value={input}
           onChange={(e) => handleInput(e)}
           placeholder={isActive ? "" : "Start typing here..."}
