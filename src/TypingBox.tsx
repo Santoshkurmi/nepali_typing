@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { PlayIcon, StopCircle, RefreshCw } from 'lucide-react';
 import Modal from "react-modal";
 import wordCorpus from "./assets/sentences.txt";
+import wallpaer from "./assets/bg.jpg";
 // import Nepal from "nepalify";
 
 const customStyles = {
@@ -110,6 +111,14 @@ const keyToNep:any = {
   "?": "\u003F", // ?
 };
 
+const keyToEng:any = {};
+  
+Object.keys(keyToNep).forEach(key => {
+  const value = keyToNep[key];
+  keyToEng[value] = key;  // Swap key and value
+});
+
+
 // Make sure to bind modal to your appElement (https://reactcommunity.org/react-modal/accessibility/)
 Modal.setAppElement('#root');
 
@@ -121,6 +130,8 @@ export default function TypingBox() {
   const [input, setInput] = useState('');
   const [duration, setDuration] = useState(60);
   const previousText = useRef<string>(input);
+  const [nextLetterHint,setNextLetterHint] = useState("");
+  const [currentWPM,setCurrentWPM] = useState(0)
   const [timer, setTimer] = useState(duration);
   const [isActive, setIsActive] = useState(false);
   const [wordsPerMinute, setWordsPerMinute] = useState(0);
@@ -131,6 +142,7 @@ export default function TypingBox() {
   const totalCount = useRef(0);
   const currentErrorIndex = useRef<number>(-1);
   const errorsIndex = useRef<number[]>([]);
+  const textAreaRef = useRef<HTMLTextAreaElement>(null);
   const [result, setResult] = useState({ accuracy: 0, wrong: 0, right: 0 })
 
   // const words = useMemo(() => text.split(" "), [text]);
@@ -139,6 +151,7 @@ export default function TypingBox() {
 
 
   useEffect(() => {
+    textAreaRef.current?.focus()
     const fetchFile = async () => {
       const response = await fetch(wordCorpus);
       const text = await response.text();
@@ -185,7 +198,6 @@ export default function TypingBox() {
       setWords(sentenceNow.slice(senTrack, senTrack + remainder))
     }
     else {
-      alert("hello")
       sentence.current = [];
       setRandomWords()
     }
@@ -212,11 +224,18 @@ export default function TypingBox() {
     return () => clearInterval(interval);
   }, [isActive, timer]);
 
+  const calculateCurrentWPM = ()=>{
+    const correctTotal = totalCount.current - errorCounts.current;
+    const wordsPerMin = Math.round(correctTotal / (duration-timer) * 60);
+    setCurrentWPM(wordsPerMin);
+    
+  }
+
   const calculateWPM = () => {
     // const words = totalCount.current;
     const correctTotal = totalCount.current - errorCounts.current;
     const wordsPerMin = Math.round(correctTotal / duration * 60);
-    const accuracy = correctTotal / totalCount.current * 100;
+    const accuracy = Math.ceil( correctTotal / totalCount.current * 100 );
     // alert("Your speed is " + wordsPerMin)
     setResult({ accuracy: accuracy, right: correctTotal, wrong: errorCounts.current })
     setIsOpen(true)
@@ -231,7 +250,10 @@ export default function TypingBox() {
     errorsIndex.current = [];
     totalCount.current = 0;
     sentence.current = [];
+    errorCounts.current = 0
     setTimer(duration);
+    setNextLetterHint("")
+    setCurrentWPM(0)
     setWordsPerMinute(0);
   };
 
@@ -245,10 +267,15 @@ export default function TypingBox() {
     setInput('');
     sentence.current = [];
     setTimer(duration);
+    errorCounts.current = 0
+    textAreaRef.current?.focus()
+    setNextLetterHint("")
+
     currentIndexOfWord.current = 0;
     errorsIndex.current = [];
     currentErrorIndex.current = -1;
     totalCount.current = 0;
+    setCurrentWPM(0)
     setWordsPerMinute(0);
     setRandomWords()
 
@@ -257,17 +284,28 @@ export default function TypingBox() {
   const handleInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     var currentText = e.target.value
     const length = currentText.length;
+    // console.log(currentText)
     const currentWord = words[currentIndexOfWord.current]
+
+    
+
     if( currentText.trim().length > 0  && currentText[length-1]!=" "){
       var mapped = keyToNep[currentText[length-1]]
-      if(mapped == undefined) mapped = ""
+      if(mapped != undefined)
       currentText = currentText.substring(0,length-1)+mapped
+    }
+
+    if(length<currentWord.length){
+      setNextLetterHint( keyToEng[currentWord[length]  ] );
+    }else{
+      setNextLetterHint("")
     }
     // previousText.current = currentText
 
 
     // alert(currentText[currentText.length-1])
     if (isActive && currentText.trim().length > 0 && currentText[length - 1] == " ") {
+      // setNextLetterHint("")
       totalCount.current++;
       console.log(totalCount)
       if (currentWord.substring(0, length) + " " != currentText) {
@@ -277,14 +315,21 @@ export default function TypingBox() {
       }
       // else currentErrorIndex.current = -1;
       currentIndexOfWord.current++;
+     
+      
       if (currentIndexOfWord.current > words.length - 1) {
         setRandomWords()
         currentIndexOfWord.current = 0;
         errorsIndex.current = [];
         currentErrorIndex.current = -1;
+      }else{
+        const currentWordTe = words[currentIndexOfWord.current]
+          setNextLetterHint( keyToEng[currentWordTe[0]  ] );
+        
       }
 
       setInput("")
+      calculateCurrentWPM()
     }
     else {
       // alert(currentWord.slice(0,length))
@@ -296,18 +341,34 @@ export default function TypingBox() {
     }
     if (!isActive && currentText.length == 1) {
       handleStart()
+      
     }//
   }
 
+  console.log(duration)
+
   return (
-    <div className="flex font-serif flex-col items-center justify-center min-h-screen dark:bg-gray-900 dark:text-white  bg-gray-100 text-gray-800 p-4">
+    <div
+    style={{backgroundImage:`url(${wallpaer})`}}
+     className={"flex  font-serif bg-cover bg-center  flex-col items-center justify-center min-h-screen  dark:text-white   text-gray-800 p-4 "}>
 
 
 
 
 
-      <div className="w-full max-w-5xl relative dark:bg-gray-700 bg-white rounded-lg shadow-md p-6 space-y-6">
+      <div className="w-full   max-w-5xl relative dark:bg-gray-700 bg-white rounded-lg shadow-md p-6 space-y-6">
+      
 
+          <div className='absolute right-10 top-10'>
+            <select onChange={(e)=>{ handleReset();setDuration(parseInt(e.target.value)*60);setTimer( parseInt( e.target.value)*60 ) }} className='bg-gray-600 rounded-md p-3'>
+              <option value="1">1 Min</option>
+              <option value="2">2 Min</option>
+              <option value="5">5 Min</option>
+              <option value="10">10 Min</option>
+              <option value="30">30 Min</option>
+            </select>
+          </div>
+        
         {
           modalIsOpen && <div className='absolute  left-[50%] h-[70%] -translate-y-[50%] shadow-lg -translate-x-[50%] top-[50%] p-7 rounded-md w-[80%] bg-gray-800'>
             <div className='text-center text-5xl mb-10 bg-green-700 rounded-md text-white font-bold'>{wordsPerMinute} WPM</div>
@@ -344,15 +405,21 @@ export default function TypingBox() {
           </div>
         }
 
-        <div className="text-center flex justify-center gap-10">
+        <div className="text-center  flex-row flex justify-center">
           <div className="div">
-            <div className="text-4xl font-bold mb-2">{timer}</div>
+            <div className="text-4xl text-green-400 font-bold mb-2">{timer}</div>
             <div className="text-xl">
-              {isActive ? "Time remaining" : wordsPerMinute > 0 ? `${wordsPerMinute} WPM` : "Ready"}
+              {isActive ? "" : "Ready"}
+            </div>
+            <div className="text-3xl text-purple-400">
+              {currentWPM} {" wpm"}
+            </div>
+            <div className='text-3xl text-blue-300 font-bold'>
+            {nextLetterHint=="" ? "😊": nextLetterHint}
+
             </div>
 
           </div>
-          {/* <div className="div">Hello</div> */}
 
 
         </div>
@@ -373,6 +440,7 @@ export default function TypingBox() {
         </div>
 
         <textarea
+          ref ={textAreaRef}
           className="w-full text-3xl p-4 border-2 dark:bg-gray-800 border-gray-300 rounded focus:outline-none focus:border-blue-500 resize-none h-32"
           value={input}
           onChange={(e) => handleInput(e)}
