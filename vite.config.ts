@@ -32,6 +32,6 @@ export default defineConfig({
     })
 
   ],
-  base: '/psc_nepali_typing/', 
+  // base: '/psc_nepali_typing/', 
 
 })
